@@ -1,80 +1,60 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101827"><title>固定画像うすめる v4</title><style>body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#101827;color:#f3f6ff;margin:0;padding:20px}main{max-width:650px;margin:auto}h1{font-size:23px}p,small{color:#b9c6d9;line-height:1.6}.panel{background:#1b2940;border-radius:17px;padding:17px;margin:14px 0}button,input[type=file]{font:inherit}button{background:#5c8bff;color:white;border:0;border-radius:10px;padding:12px 16px;margin:6px 4px 6px 0}button:disabled{opacity:.4}label{display:block;margin:12px 0}input[type=range]{width:100%}video,canvas{width:100%;border-radius:10px;background:black}#canvas{display:block}#paintWrap{position:relative;touch-action:none}#maskCanvas{position:absolute;inset:0;width:100%;height:100%;background:transparent;touch-action:none;cursor:crosshair}#maskCanvas.off{pointer-events:none}select{font:inherit}#output{display:none}#status{white-space:pre-wrap}a{color:#9bbaff}</style></head><body><main><h1>🎞️ 固定画像うすめる v4</h1><p>iPhone内で動画を解析する実験ツール。動画はサーバーに送信しません。背景の動きから半透明の固定画像を推定します。</p><div class="panel"><label>① 動画を選択（1分以内推奨）<input type="file" id="file" accept="video/*"></label><video id="video" controls playsinline preload="metadata"></video><button id="analyze" disabled>② 固定成分を解析</button><div id="status">動画を選んでください。</div></div><div class="panel"><label>③ 補正の強さ：<span id="sv">65</span>%<input type="range" id="strength" min="0" max="200" value="65"><small>100%を超えると強力補正。画質が崩れたら下げてください。</small></label><label>推定透明度の倍率：<span id="dv">100</span>%<input type="range" id="detail" min="20" max="180" value="100"></label><label>推定する透明度の上限：<span id="av">45</span>%<input type="range" id="alphaCap" min="10" max="75" value="45"></label><label>固定成分の推定方式<select id="method"><option value="median">時間中央値（標準）</option><option value="mean">時間平均</option></select></label><label><input type="checkbox" id="maskMode"> 指で塗った範囲だけ補正する</label><label>ブラシの大きさ：<span id="bv">12</span>%<input type="range" id="brush" min="2" max="35" value="12"></label><button id="clearMask" type="button">塗った範囲を消す</button><p><small>解析後にチェックを入れ、スパイディの部分を指で塗ってください。赤い部分だけ補正します。スパイディの輪郭より少し広く塗るのがおすすめ。未選択なら全体を補正します。</small></p><button id="preview" disabled>補正後を表示</button><button id="before" disabled>補正前を表示</button><div id="paintWrap"><canvas id="canvas"></canvas><canvas id="maskCanvas" class="off"></canvas></div><small>注意：元画像なしでの透明度推定は不確実です。背景の動きや模様によって誤補正が起こります。補正強度200%は除去率を意味しません。色や明るさが不自然になることがあります。元動画の復元を保証するものではありません。</small></div><div class="panel"><button id="export" disabled>④ 補正動画を書き出す</button><p id="exportStatus"></p><video id="output" controls playsinline></video><a id="download" style="display:none" download="corrected.webm">補正動画を保存</a><p><small>Safariの動画書き出し対応状況によっては保存できません。音声は出力されません。対応していない場合はプレビューのスクリーン録画を代替として使えます。</small></p></div></main><script>
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101827"><title>背景復元テスト v5</title><style>body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#101827;color:#f3f6ff;margin:0;padding:20px}main{max-width:650px;margin:auto}h1{font-size:23px}p,small{color:#b9c6d9;line-height:1.6}.panel{background:#1b2940;border-radius:17px;padding:17px;margin:14px 0}button,input[type=file]{font:inherit}button{background:#5c8bff;color:white;border:0;border-radius:10px;padding:12px 16px;margin:6px 4px 6px 0}button:disabled{opacity:.4}label{display:block;margin:12px 0}input[type=range]{width:100%}video,canvas{width:100%;border-radius:10px;background:black}#canvas{display:block}#paintWrap{position:relative;touch-action:none}#maskCanvas{position:absolute;inset:0;width:100%;height:100%;background:transparent;touch-action:none;cursor:crosshair}#maskCanvas.off{pointer-events:none}select{font:inherit}#output{display:none}#status{white-space:pre-wrap}a{color:#9bbaff}</style></head><body><main><h1>🎞️ 背景復元テスト v5</h1><p>iPhone内で動画を解析する実験ツール。動画はサーバーに送信しません。指定した範囲を周囲の動く映像から埋める実験版です。</p><div class="panel"><label>① 動画を選択（1分以内推奨）<input type="file" id="file" accept="video/*"></label><video id="video" controls playsinline preload="metadata"></video><button id="analyze" disabled>② 固定成分を解析</button><div id="status">動画を選んでください。</div></div><div class="panel"><label>③ 復元の強さ：<span id="sv">100</span>%<input type="range" id="strength" min="0" max="100" value="100"><small>100%で塗った範囲を全面的に置き換えます。</small></label><label>周囲からの補間範囲：<span id="dv">30</span>px<input type="range" id="detail" min="8" max="80" value="30"></label><p><small>背景の細部は推測になります。スパイディの領域を塗ってください。</small></p><label><input type="checkbox" id="maskMode" checked> 指でスパイディを塗って除去範囲を指定</label><label>ブラシの大きさ：<span id="bv">12</span>%<input type="range" id="brush" min="2" max="35" value="12"></label><button id="clearMask" type="button">塗った範囲を消す</button><p><small>解析後にチェックを入れ、スパイディの部分を指で塗ってください。赤い部分を周囲の映像で埋めます。輪郭より少し広めに塗ってください。</small></p><button id="preview" disabled>補正後を表示</button><button id="before" disabled>補正前を表示</button><div id="paintWrap"><canvas id="canvas"></canvas><canvas id="maskCanvas" class="off"></canvas></div><small>注意：これは周囲の画素を使う簡易補間です。スパイディの下の本当の映像を復元するものではありません。広い範囲はぼやけます。</small></div><div class="panel"><button id="export" disabled>④ 補正動画を書き出す</button><p id="exportStatus"></p><video id="output" controls playsinline></video><a id="download" style="display:none" download="corrected.webm">補正動画を保存</a><p><small>Safariの動画書き出し対応状況によっては保存できません。音声は出力されません。対応していない場合はプレビューのスクリーン録画を代替として使えます。</small></p></div></main><script>
 const $=id=>document.getElementById(id),v=$('video'),c=$('canvas'),ctx=c.getContext('2d',{willReadFrequently:true});let fileURL=null,base=null,W=0,H=0,samples=[],mask=null,painting=false,lastPoint=null;const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-$('strength').oninput=()=>{$('sv').textContent=$('strength').value;if(base)preview()};$('detail').oninput=()=>{$('dv').textContent=$('detail').value;if(base)preview()};$('alphaCap').oninput=()=>{$('av').textContent=$('alphaCap').value;if(base)preview()};$('file').onchange=()=>{const f=$('file').files[0];if(!f)return;if(fileURL)URL.revokeObjectURL(fileURL);fileURL=URL.createObjectURL(f);v.src=fileURL;base=null;mask=null;$('maskCanvas').classList.add('off');$('maskMode').checked=false;$('analyze').disabled=false;$('preview').disabled=true;$('before').disabled=true;$('export').disabled=true;$('status').textContent='動画を読み込みました。';};
+$('strength').oninput=()=>{$('sv').textContent=$('strength').value;if(base)preview()};$('detail').oninput=()=>{$('dv').textContent=$('detail').value;if(base)preview()};$('file').onchange=()=>{const f=$('file').files[0];if(!f)return;if(fileURL)URL.revokeObjectURL(fileURL);fileURL=URL.createObjectURL(f);v.src=fileURL;base=null;mask=null;$('maskCanvas').classList.remove('off');$('maskMode').checked=true;$('analyze').disabled=false;$('preview').disabled=true;$('before').disabled=true;$('export').disabled=true;$('status').textContent='動画を読み込みました。';};
 function seek(t){return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{cleanup();reject(Error('動画の読み取りがタイムアウトしました'))},12000);function cleanup(){clearTimeout(timer);v.removeEventListener('seeked',ok);v.removeEventListener('error',bad)}function ok(){cleanup();resolve()}function bad(){cleanup();reject(Error('動画を読み取れません'))}v.addEventListener('seeked',ok,{once:true});v.addEventListener('error',bad,{once:true});v.currentTime=t;});}
 function getFrame(){ctx.drawImage(v,0,0,W,H);return ctx.getImageData(0,0,W,H)}
-$('analyze').onclick=async()=>{try{$('analyze').disabled=true;$('status').textContent='解析中…';await new Promise(r=>v.readyState>=1?r():v.addEventListener('loadedmetadata',r,{once:true}));const duration=v.duration;if(!isFinite(duration)||duration<=0)throw Error('動画の長さを取得できません');if(duration>65)throw Error('1分以内の動画で試してください');const scale=Math.min(1,420/v.videoWidth);W=Math.max(2,Math.round(v.videoWidth*scale/2)*2);H=Math.max(2,Math.round(v.videoHeight*scale/2)*2);c.width=W;c.height=H;$('maskCanvas').width=W;$('maskCanvas').height=H;mask=new Uint8Array(W*H);drawMask();samples=[];const n=36;for(let i=0;i<n;i++){await seek(Math.min(duration-.05,Math.max(.02,duration*(i+.5)/n)));samples.push(getFrame().data.slice());$('status').textContent=`解析中… ${i+1}/${n}`;await sleep(0)}computeBase();$('preview').disabled=false;$('before').disabled=false;$('export').disabled=!(window.MediaRecorder&&c.captureStream);$('status').textContent=`解析完了（${W}×${H}）。プレビューを確認してください。`;await preview()}catch(e){$('status').textContent='エラー: '+e.message}finally{$('analyze').disabled=false}};
-// Temporal statistics: observed = (1-alpha)*background + alpha*overlay.
-// Alpha cannot be uniquely identified without assumptions. Local motion variance
-// provides a heuristic estimate; spatially smoothed mean is a background prior.
-let overlayMean=null,backgroundPrior=null,alphaGuess=null;
-function blurArray(arr,rad){
- const cn=document.createElement('canvas');cn.width=W;cn.height=H;
- const cx=cn.getContext('2d',{willReadFrequently:true});
- cx.putImageData(new ImageData(new Uint8ClampedArray(arr),W,H),0,0);
- const out=document.createElement('canvas');out.width=W;out.height=H;
- const ox=out.getContext('2d',{willReadFrequently:true});
- ox.filter='blur('+rad+'px)';ox.drawImage(cn,0,0);
- return ox.getImageData(0,0,W,H).data;
-}
-function computeBase(){
- const len=samples[0].length,n=samples.length;
- const mean=new Uint8ClampedArray(len),variance=new Float32Array(W*H);
- for(let i=0;i<len;i+=4){
-  let lumMean=0,lumSq=0;
-  for(let k=0;k<3;k++){
-   let total=0;for(const fr of samples)total+=fr[i+k];
-   mean[i+k]=Math.round(total/n);
-  }
-  for(const fr of samples){
-   const lum=.2126*fr[i]+.7152*fr[i+1]+.0722*fr[i+2];
-   lumMean+=lum;lumSq+=lum*lum;
-  }
-  lumMean/=n;variance[i>>2]=Math.max(0,lumSq/n-lumMean*lumMean);
-  mean[i+3]=255;
- }
- overlayMean=mean;
- backgroundPrior=blurArray(mean,18);
- const packed=new Uint8ClampedArray(len);
- // Encode temporal std deviation to smooth it with a blur canvas.
- for(let p=0;p<variance.length;p++){
-  const v=Math.min(255,Math.sqrt(variance[p])*3),j=p*4;
-  packed[j]=packed[j+1]=packed[j+2]=v;packed[j+3]=255;
- }
- const neighborhood=blurArray(packed,22);
- alphaGuess=new Float32Array(W*H);
- for(let p=0;p<variance.length;p++){
-  const localStd=Math.sqrt(variance[p]),referenceStd=neighborhood[p*4]/3;
-  // Suppressed temporal variation suggests a semi-transparent static layer.
-  // Guard against near-stationary background and limit maximum alpha.
-  const a=referenceStd>9?1-localStd/Math.max(1,referenceStd):0;
-  alphaGuess[p]=Math.max(0,Math.min(.7,a));
- }
- base=mean;
-}
-$('method').onchange=()=>{if(samples.length){computeBase();preview()}};
+$('analyze').onclick=async()=>{try{$('analyze').disabled=true;$('status').textContent='準備中…';await new Promise(r=>v.readyState>=1?r():v.addEventListener('loadedmetadata',r,{once:true}));const duration=v.duration;if(!isFinite(duration)||duration<=0)throw Error('動画の長さを取得できません');if(duration>65)throw Error('1分以内の動画で試してください');const scale=Math.min(1,420/v.videoWidth);W=Math.max(2,Math.round(v.videoWidth*scale/2)*2);H=Math.max(2,Math.round(v.videoHeight*scale/2)*2);c.width=W;c.height=H;$('maskCanvas').width=W;$('maskCanvas').height=H;mask=new Uint8Array(W*H);drawMask();samples=[];const n=3;for(let i=0;i<n;i++){await seek(Math.min(duration-.05,Math.max(.02,duration*(i+.5)/n)));samples.push(getFrame().data.slice());$('status').textContent=`解析中… ${i+1}/${n}`;await sleep(0)}computeBase();$('preview').disabled=false;$('before').disabled=false;$('export').disabled=!(window.MediaRecorder&&c.captureStream);$('status').textContent=`準備完了（${W}×${H}）。プレビューを確認してください。`;await preview()}catch(e){$('status').textContent='エラー: '+e.message}finally{$('analyze').disabled=false}};
+// v5 spatial inpainting: propagate boundary colors into the selected region.
+// This is NOT ground-truth recovery of hidden video content.
+function computeBase(){base=samples[0]||new Uint8ClampedArray(W*H*4)}
 function corrected(frame){
- if(!overlayMean||!alphaGuess)return frame;
- const d=frame.data,strength=+$('strength').value/100;
- const multiplier=+$('detail').value/100,cap=+$('alphaCap').value/100;
- const localized=$('maskMode').checked;
- for(let p=0;p<W*H;p++){
-  const coverage=localized?(mask?mask[p]/255:0):1;
+ if(!mask||!$('maskMode').checked)return frame;
+ const strength=Number($('strength').value)/100;
+ if(strength<=0)return frame;
+ const radius=Math.max(1,Number($('detail').value));
+ const src=frame.data,output=new Uint8ClampedArray(src);
+ // Downsample to keep 60-second iPhone processing practical.
+ const step=Math.max(2,Math.ceil(Math.max(W,H)/210));
+ const w=Math.ceil(W/step),h=Math.ceil(H/step),n=w*h;
+ let colors=new Float32Array(n*3),known=new Uint8Array(n),selected=new Uint8Array(n);
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+  const px=Math.min(W-1,x*step),py=Math.min(H-1,y*step),p=y*w+x,j=(py*W+px)*4;
+  const covered=mask[py*W+px]>90;
+  selected[p]=covered?1:0;known[p]=covered?0:1;
+  for(let k=0;k<3;k++)colors[p*3+k]=src[j+k];
+ }
+ // Progressive diffusion from the nearest visible border, using 8 neighbors.
+ // This intentionally fills the entire mask, even when it is large.
+ const maxPass=Math.max(w,h);
+ for(let pass=0;pass<maxPass;pass++){
+  let changed=0;const next=colors.slice(),nextKnown=known.slice();
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+   const p=y*w+x;if(known[p])continue;
+   let count=0,r=0,g=0,b=0;
+   for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+    if(!dx&&!dy)continue;const xx=x+dx,yy=y+dy;
+    if(xx<0||xx>=w||yy<0||yy>=h)continue;
+    const q=yy*w+xx;if(!known[q])continue;
+    const weight=(dx&&dy)?0.707:1;
+    r+=colors[q*3]*weight;g+=colors[q*3+1]*weight;b+=colors[q*3+2]*weight;count+=weight;
+   }
+   if(count){next[p*3]=r/count;next[p*3+1]=g/count;next[p*3+2]=b/count;nextKnown[p]=1;changed++}
+  }
+  colors=next;known=nextKnown;if(!changed)break;
+ }
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+  const p=y*W+x,coverage=mask[p]/255;
   if(coverage<=0)continue;
-  const a=Math.min(cap,alphaGuess[p]*multiplier)*Math.min(1,strength)*coverage;
-  if(a<.008)continue;
-  const j=p*4;
-  // Estimate overlay color from temporal mean and smooth background prior.
-  // O = (mean-(1-a)*backgroundPrior)/a. Clamp to physical RGB.
+  const gx=x/step,gy=y/step,x0=Math.min(w-1,Math.floor(gx)),y0=Math.min(h-1,Math.floor(gy));
+  const x1=Math.min(w-1,x0+1),y1=Math.min(h-1,y0+1),tx=gx-x0,ty=gy-y0;
+  const a=(y0*w+x0)*3,b=(y0*w+x1)*3,c=(y1*w+x0)*3,d=(y1*w+x1)*3;
+  const blend=coverage*strength;
   for(let k=0;k<3;k++){
-   const m=overlayMean[j+k],prior=backgroundPrior[j+k];
-   const overlay=Math.max(0,Math.min(255,(m-(1-a)*prior)/a));
-   const reconstructed=(d[j+k]-a*overlay)/(1-a);
-   const blend=Math.min(1,strength);
-   d[j+k]=Math.max(0,Math.min(255,d[j+k]*(1-blend)+reconstructed*blend));
+   const fill=colors[a+k]*(1-tx)*(1-ty)+colors[b+k]*tx*(1-ty)+colors[c+k]*(1-tx)*ty+colors[d+k]*tx*ty;
+   output[p*4+k]=src[p*4+k]*(1-blend)+fill*blend;
   }
  }
- return frame;
+ frame.data.set(output);return frame;
 }
 const mc=$('maskCanvas'),mctx=mc.getContext('2d');
 $('brush').oninput=()=>{$('bv').textContent=$('brush').value};
